@@ -123,32 +123,57 @@
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px}
 
-  /* ── MÒBIL ────────────────────────────────────────────── */
-  @media (max-width: 700px) {
-    header{padding:8px 14px;gap:10px}
-    header h1{font-size:.78rem}
-    .logo{font-size:1.1rem}
-    /* Layout vertical: plànol a dalt, panel a baix */
+  /* ── MÒBIL VERTICAL ───────────────────────────────────── */
+  @media (max-width: 700px) and (orientation: portrait) {
+    header{padding:8px 14px;gap:8px}
+    header h1{font-size:.72rem;line-height:1.2}
+    .logo{font-size:1rem}
+    /* Layout vertical: plànol dalt, panel baix */
     .app{flex-direction:column;height:calc(100vh - 44px)}
     .sb{width:100%;min-width:unset;border-right:none;border-top:2px solid #eee;
-        height:42vh;min-height:200px;max-height:55vh;order:2;flex-shrink:0}
-    .pa{order:1;flex:1;min-height:0}
+        height:44vh;min-height:190px;max-height:52vh;order:2;flex-shrink:0}
+    .pa{order:1;flex:1;min-height:0;position:relative}
     /* Tabs més grans per dits */
-    .tabs{gap:0}
-    .tb{padding:10px 4px;font-size:.68rem}
-    /* Panel lateral dret (detall sector) ocupa tota la pantalla en mòbil */
-    .pd{width:100%;border-left:none;border-top:1px solid #ddd}
-    /* Popup centrat en mòbil */
+    .tb{padding:11px 4px;font-size:.67rem}
+    /* Panel detall: overlay a pantalla completa en mòbil */
+    .pd{position:fixed!important;top:0!important;left:0!important;right:0!important;
+        bottom:0!important;width:100%!important;height:100%!important;
+        border:none;z-index:500;transform:translateY(100%)}
+    .pd.open{transform:translateY(0)}
+    /* Popup centrat */
     .pop{left:50%!important;top:50%!important;transform:translate(-50%,-50%);
-         width:min(320px,92vw);max-height:70vh}
-    /* Controls de zoom més grans */
-    .zc button{width:38px;height:38px;font-size:1.1rem}
-    /* Info bar */
-    .iz{font-size:.68rem;padding:5px 10px}
-    /* Selects cerca més compactes */
-    .cerca-select{height:90px}
-    /* Modal reassignació */
+         width:min(310px,92vw);max-height:72vh}
+    .pop.vis{transform:translate(-50%,-50%)!important}
+    /* Controls zoom */
+    .zc button{width:40px;height:40px;font-size:1.1rem}
+    .iz{font-size:.66rem;padding:5px 10px}
+    .cerca-select{height:85px}
     #modal-reassigna > div{width:96vw!important;max-height:92vh!important}
+  }
+
+  /* ── MÒBIL HORITZONTAL ────────────────────────────────── */
+  @media (max-width: 900px) and (orientation: landscape) {
+    header{padding:6px 14px;gap:8px}
+    header h1{font-size:.72rem}
+    .logo{font-size:1rem}
+    /* Layout horitzontal però sidebar més estret */
+    .app{flex-direction:row;height:calc(100vh - 40px)}
+    .sb{width:260px;min-width:220px;max-width:260px;border-right:1px solid #eee;border-top:none}
+    .pa{flex:1}
+    /* Tabs compactes */
+    .tb{padding:8px 3px;font-size:.62rem}
+    .tc{padding:9px}
+    /* Panel detall: overlay pantalla completa */
+    .pd{position:fixed!important;top:0!important;left:0!important;right:0!important;
+        bottom:0!important;width:100%!important;height:100%!important;
+        border:none;z-index:500;transform:translateY(100%)}
+    .pd.open{transform:translateY(0)}
+    /* Popup centrat */
+    .pop{left:50%!important;top:50%!important;transform:translate(-50%,-50%);
+         width:min(340px,70vw);max-height:85vh}
+    .pop.vis{transform:translate(-50%,-50%)!important}
+    .cerca-select{height:80px}
+    #modal-reassigna > div{width:90vw!important;max-height:90vh!important}
   }
 </style>
 </head>
@@ -239,7 +264,7 @@
 
   <div class="pd" id="pd">
     <div class="pdh"><h3 id="pdt">Sector</h3>
-      <button style="background:none;border:none;color:white;cursor:pointer;font-size:1.1rem" onclick="tancarPD()">✕</button></div>
+      <button style="background:none;border:none;color:white;cursor:pointer;font-size:1.4rem;padding:4px 10px;line-height:1;min-width:44px;min-height:44px" onclick="tancarPD()">✕</button></div>
     <div class="pdb" id="pdb"></div>
   </div>
 </div>
