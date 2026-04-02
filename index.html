@@ -916,6 +916,7 @@ function carregarEspeciesNoves() {}
 // ── STOCK MICGESTIÓ ──────────────────────────────────────
 // Reparticions en curs (multi-sector): { nomArticle: [{sector,unitats}, ...] }
 let reparticionsActuals = {};
+const _nomPerSafeId = {}; // safeId → nom original
 
 function cercarStock() {
   const q = document.getElementById('stock-cerca').value.trim().toLowerCase();
@@ -933,6 +934,7 @@ function cercarStock() {
     // safeId: hash numèric simple per evitar problemes amb btoa i caràcters especials
     let h=0; for(let i=0;i<nom.length;i++){h=(h*31+nom.charCodeAt(i))&0xfffffff;}
     const safeId='s'+h.toString(36);
+    _nomPerSafeId[safeId]=nom; // desar per recuperar-lo des dels handlers
     const asig = stockAsignacions[nom] || [];
     // Unitats ja assignades definitivament
     const utAssignades = asig.reduce((a,x)=>a+x.unitats,0);
@@ -966,13 +968,13 @@ function cercarStock() {
       ${histHtml}
       <div id="linies-${safeId}">${liniesHtml}</div>
       <div style="display:flex;gap:5px;margin-top:5px;">
-        <button onclick="afegirLinia('${nom.replace(/'/g,"\'")}','${safeId}')"
+        <button onclick="afegirLinia('${safeId}')"
           style="background:#f0f0f0;color:#444;border:1.5px dashed #ccc;border-radius:4px;padding:4px 10px;font-size:.73rem;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;flex:1;transition:all .2s"
           onmouseover="this.style.borderColor='#1D9E75';this.style.color='#0F6E56'"
           onmouseout="this.style.borderColor='#ccc';this.style.color='#444'">
           ＋ Afegir sector
         </button>
-        <button onclick="confirmarReparticio('${nom.replace(/'/g,"\'")}','${safeId}')"
+        <button onclick="confirmarReparticio('${safeId}')"
           style="background:#0F6E56;color:white;border:none;border-radius:4px;padding:4px 12px;font-size:.73rem;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:background .2s"
           onmouseover="this.style.background='#1D9E75'"
           onmouseout="this.style.background='#0F6E56'">
@@ -989,22 +991,23 @@ function renderLinia(nom, safeId, idx, sectorVal, unitatsVal, maxTotal) {
     `<option value="${s.id}" ${s.id===sectorVal?'selected':''}>${s.id}</option>`
   ).join('');
   return `<div class="stock-assign" id="linia-${safeId}-${idx}">
-    <select onchange="actualitzarLinia('${nom.replace(/'/g,"\'")}','${safeId}',${idx},'sector',this.value)">
+    <select onchange="actualitzarLinia('${safeId}',${idx},'sector',this.value)">
       <option value="">— Sector —</option>
       ${sectorOpts}
     </select>
     <input type="number" placeholder="ut." min="1" value="${unitatsVal||''}"
       style="width:70px;padding:4px 6px;border:1.5px solid #ddd;border-radius:4px;font-size:.76rem;outline:none;transition:border-color .2s"
       onfocus="this.style.borderColor='#1D9E75'" onblur="this.style.borderColor='#ddd'"
-      onchange="actualitzarLinia('${nom.replace(/'/g,"\'")}','${safeId}',${idx},'unitats',parseInt(this.value)||0)">
-    <button onclick="eliminarLinia('${nom.replace(/'/g,"\'")}','${safeId}',${idx})"
+      onchange="actualitzarLinia('${safeId}',${idx},'unitats',parseInt(this.value)||0)">
+    <button onclick="eliminarLinia('${safeId}',${idx})"
       style="background:#fee;color:#c0392b;border:1px solid #fcc;border-radius:4px;padding:4px 7px;font-size:.75rem;cursor:pointer">
       ✕
     </button>
   </div>`;
 }
 
-function afegirLinia(nom, safeId) {
+function afegirLinia(safeId) {
+  const nom = _nomPerSafeId[safeId]; if(!nom) return;
   if (!reparticionsActuals[nom]) reparticionsActuals[nom] = [];
   // Verificar que no superi el disponible
   const v = STOCK_DATA[nom];
@@ -1018,13 +1021,15 @@ function afegirLinia(nom, safeId) {
   refrescarItem(nom, safeId);
 }
 
-function eliminarLinia(nom, safeId, idx) {
+function eliminarLinia(safeId, idx) {
+  const nom = _nomPerSafeId[safeId]; if(!nom) return;
   if (!reparticionsActuals[nom]) return;
   reparticionsActuals[nom].splice(idx, 1);
   refrescarItem(nom, safeId);
 }
 
-function actualitzarLinia(nom, safeId, idx, camp, valor) {
+function actualitzarLinia(safeId, idx, camp, valor) {
+  const nom = _nomPerSafeId[safeId]; if(!nom) return;
   if (!reparticionsActuals[nom] || !reparticionsActuals[nom][idx]) return;
   reparticionsActuals[nom][idx][camp] = valor;
   // Actualitzar comptador restants
@@ -1056,7 +1061,8 @@ function refrescarItem(nom, safeId) {
   }
 }
 
-function confirmarReparticio(nom, safeId) {
+function confirmarReparticio(safeId) {
+  const nom = _nomPerSafeId[safeId]; if(!nom){notif('⚠️ Error intern: article no trobat');return;}
   const rep = reparticionsActuals[nom] || [];
   if (!rep.length) { notif('⚠️ Afegeix almenys un sector'); return; }
   // Validar línies
