@@ -392,9 +392,7 @@ window.addEventListener('load',()=>{
   totsOpcions = Array.from(sel.querySelectorAll('option')).map(o=>{return {val:o.value,txt:o.textContent,grp:o.parentElement.label||''};});
   // Listeners permanents per dibuixar sectors (mode 'e')
   const sv = document.getElementById('sv');
-  sv.addEventListener('mousedown', e=>{if(mode==='e')nsStart(e);});
-  sv.addEventListener('mousemove', e=>{if(mode==='e')nsMove(e);});
-  sv.addEventListener('mouseup',   e=>{if(mode==='e')nsEnd(e);});
+  sv.addEventListener('mousedown', e=>{if(mode==='e'){e.preventDefault();nsStart(e);}});
   sv.addEventListener('touchstart',e=>{if(mode==='e')nsTStart(e);},{passive:false});
   sv.addEventListener('touchmove', e=>{if(mode==='e')nsTMove(e);},{passive:false});
   sv.addEventListener('touchend',  e=>{if(mode==='e')nsTEnd(e);},{passive:false});
@@ -818,7 +816,22 @@ function nsTEnd(e){e.preventDefault();const t=e.changedTouches[0];nsEnd({clientX
 // ── NOU SECTOR ────────────────────────────────────────────
 function setMode(m){mode=m;document.getElementById('bv').classList.toggle('actiu',m==='v');document.getElementById('be').classList.toggle('actiu',m==='e');document.getElementById('iz').textContent=m==='v'?'Fes clic a un sector de H1':'✏️ Dibuixa un rectangle per afegir nou sector';render();tancarPop();}
 function svgPt(e){const sv=document.getElementById('sv'),pt=sv.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;return pt.matrixTransform(sv.getScreenCTM().inverse());}
-function nsStart(e){dib=true;ns0=svgPt(e);nsR=document.createElementNS('http://www.w3.org/2000/svg','rect');nsR.setAttribute('fill','rgba(29,158,117,.3)');nsR.setAttribute('stroke','#1D9E75');nsR.setAttribute('stroke-width','2');nsR.setAttribute('stroke-dasharray','5,3');nsR.setAttribute('rx','3');document.getElementById('sv').appendChild(nsR);}
+function nsStart(e){
+  if(mode!=='e')return;
+  dib=true;ns0=svgPt(e);
+  nsR=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  nsR.setAttribute('fill','rgba(29,158,117,.3)');nsR.setAttribute('stroke','#1D9E75');
+  nsR.setAttribute('stroke-width','2');nsR.setAttribute('stroke-dasharray','5,3');nsR.setAttribute('rx','3');
+  document.getElementById('sv').appendChild(nsR);
+  // Usar document per no perdre el drag fora del SVG
+  document.addEventListener('mousemove',nsMove);
+  document.addEventListener('mouseup',nsEndDoc);
+}
+function nsEndDoc(e){
+  document.removeEventListener('mousemove',nsMove);
+  document.removeEventListener('mouseup',nsEndDoc);
+  nsEnd(e);
+}
 function nsMove(e){if(!dib||!ns0)return;const pt=svgPt(e),x=Math.min(pt.x,ns0.x),y=Math.min(pt.y,ns0.y);nsR.setAttribute('x',x);nsR.setAttribute('y',y);nsR.setAttribute('width',Math.abs(pt.x-ns0.x));nsR.setAttribute('height',Math.abs(pt.y-ns0.y));}
 function nsEnd(e){
   if(!dib)return;dib=false;
