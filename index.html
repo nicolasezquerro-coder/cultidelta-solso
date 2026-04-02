@@ -332,7 +332,7 @@ const GEXTRA=['#2C3E50','#8E44AD','#C0392B','#D35400','#16A085'];
 let totsOpcions = [];
 window.addEventListener('load',()=>{
   ajustarSVG();
-  document.getElementById('fd').value=new Date().toISOString().split('T')[0];
+  // fd eliminat (formulari +Lot suprimit)
   const sel = document.getElementById('sel-esp');
   totsOpcions = Array.from(sel.querySelectorAll('option')).map(o=>{return {val:o.value,txt:o.textContent,grp:o.parentElement.label||''}});
   // Firebase s'encarrega de carregar lots, sectors i espècies
@@ -742,42 +742,6 @@ function ressaltar(id){
 }
 
 // ── FORMULARI NOU LOT ─────────────────────────────────────
-function filtrarSelectLot(){
-  const q=document.getElementById('fg2-filter').value.trim().toLowerCase();
-  const sel=document.getElementById('fg2-sel');
-  sel.innerHTML='<option value="">— Selecciona espècie —</option>';
-  let grpActual='',grpEl=null;
-  totsOpcions.filter(o=>o.val&&o.txt.toLowerCase().includes(q)).forEach(o=>{
-    if(o.grp!==grpActual){if(grpEl)sel.appendChild(grpEl);grpEl=document.createElement('optgroup');grpEl.label=o.grp;grpActual=o.grp;}
-    const opt=document.createElement('option');opt.value=o.val;opt.textContent=o.txt;grpEl.appendChild(opt);
-  });
-  if(grpEl)sel.appendChild(grpEl);
-}
-function seleccionarEspecieLot(){
-  const v=document.getElementById('fg2-sel').value;
-  document.getElementById('fg2-val').value=v;
-}
-
-function guardar(){
-  const especie=document.getElementById('fg2-val').value.trim();
-  const lot={
-    lot:document.getElementById('fl').value.trim()||'L-'+Date.now(),
-    especie:especie,
-    format:document.getElementById('ff').value,
-    unitats:parseInt(document.getElementById('fu').value)||0,
-    sector:document.getElementById('fse').value,
-    data:document.getElementById('fd').value,
-    estat:document.getElementById('fest').value,
-    obs:document.getElementById('fo').value.trim(),
-  };
-  if(!lot.especie||!lot.sector||!lot.unitats){notif('⚠️ Omple: Espècie, Sector i Unitats');return;}
-  fbPush('lots', lot);
-  ['fl','fg2-filter','fg2-val','fo'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('fu').value='';document.getElementById('fse').value='';
-  document.getElementById('ff').value='';document.getElementById('fd').value=new Date().toISOString().split('T')[0];
-  notif('✓ Lot guardat correctament');tab('cerca');
-}
-
 // ── NOU SECTOR ────────────────────────────────────────────
 function setMode(m){mode=m;document.getElementById('bv').classList.toggle('actiu',m==='v');document.getElementById('be').classList.toggle('actiu',m==='e');document.getElementById('iz').textContent=m==='v'?'Fes clic a un sector de H1':'✏️ Dibuixa un rectangle per afegir nou sector';render();tancarPop();}
 function svgPt(e){const sv=document.getElementById('sv'),pt=sv.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;return pt.matrixTransform(sv.getScreenCTM().inverse());}
@@ -814,7 +778,7 @@ document.getElementById('pw').addEventListener('wheel',e=>{e.preventDefault();zo
 // ── SELECTS I RESUM ───────────────────────────────────────
 function actualitzarSelects(){
   const opts=sectors.map(s=>`<option value="${s.id}">${s.id} — ${s.nom}</option>`).join('');
-  document.getElementById('fse').innerHTML='<option value="">— Selecciona —</option>'+opts;
+  const fse=document.getElementById('fse'); if(fse) fse.innerHTML='<option value="">— Selecciona —</option>'+opts;
   document.getElementById('fs').innerHTML='<option value="">— Tots —</option>'+opts;
 }
 function actualitzarResum(){
@@ -839,7 +803,7 @@ function actualitzarResum(){
 }
 
 function tab(id){
-  ['cerca','lot','resum','stock'].forEach((t,i)=>{
+  ['cerca','resum','stock'].forEach((t,i)=>{
     document.querySelectorAll('.tb')[i].classList.toggle('active',t===id);
     document.getElementById('tab-'+t).classList.toggle('active',t===id);
   });
@@ -848,52 +812,17 @@ function tab(id){
 function notif(msg){const n=document.getElementById('notif');n.textContent=msg;n.classList.add('vis');setTimeout(()=>n.classList.remove('vis'),2500);}
 
 // ── NOVA ESPÈCIE ─────────────────────────────────────────
-function comprovarNovaEspecie() {
-  const v = document.getElementById('fg2-val').value.trim();
-  const hint = document.getElementById('hint-nova');
-  const inp = document.getElementById('fg2-val');
-  if (!v) { hint.style.display='none'; inp.style.borderColor='#ddd'; return; }
-  const esCataleg = totsOpcions.some(o => o.val.toLowerCase() === v.toLowerCase());
-  if (esCataleg) {
-    hint.style.display='none';
-    inp.style.borderColor='#1D9E75';
-  } else {
-    hint.style.display='block';
-    inp.style.borderColor='#E8A020';
-  }
-}
-
-function afegirEspecieNova() {
-  const v = document.getElementById('fg2-val').value.trim();
-  if (!v) { notif('⚠️ Escriu el nom de l\'espècie nova'); return; }
-  const jaExisteix = totsOpcions.some(o => o.val.toLowerCase() === v.toLowerCase());
-  if (jaExisteix) { notif('Aquesta espècie ja és al catàleg'); return; }
-  // Afegir a Firebase
-  fbPush('esp_noves', v);
-  // Afegir a totsOpcions per filtrar
-  totsOpcions.push({ val: v, txt: v, grp: '★ Espècies noves' });
-  // Afegir als selects de cerca
-  afegirOpcioSelects(v);
-  document.getElementById('hint-nova').style.display='none';
-  document.getElementById('fg2-val').style.borderColor='#1D9E75';
-  notif('✓ «' + v + '» afegida al catàleg local');
-}
-
 function afegirOpcioSelects(nom) {
-  // Afegir al select de cerca (sel-esp)
-  [document.getElementById('sel-esp'), document.getElementById('fg2-sel')].forEach(sel => {
-    if (!sel) return;
-    let grp = Array.from(sel.querySelectorAll('optgroup')).find(g => g.label === '★ Espècies noves');
-    if (!grp) { grp = document.createElement('optgroup'); grp.label = '★ Espècies noves'; sel.appendChild(grp); }
-    const opt = document.createElement('option'); opt.value = nom; opt.textContent = nom;
-    grp.appendChild(opt);
-  });
+  const sel = document.getElementById('sel-esp');
+  if (!sel) return;
+  let grp = Array.from(sel.querySelectorAll('optgroup')).find(g => g.label === '★ Espècies noves');
+  if (!grp) { grp = document.createElement('optgroup'); grp.label = '★ Espècies noves'; sel.appendChild(grp); }
+  const opt = document.createElement('option'); opt.value = nom; opt.textContent = nom;
+  grp.appendChild(opt);
 }
 
-// Carregar espècies noves guardades al iniciar - ara via Firebase onValue
-function carregarEspeciesNoves() {
-  // Les espècies noves es carreguen via l'escoltador onValue de Firebase
-}
+// Carregar espècies noves via Firebase onValue
+function carregarEspeciesNoves() {}
 
 
 // ── STOCK MICGESTIÓ ──────────────────────────────────────
